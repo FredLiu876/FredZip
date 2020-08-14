@@ -12,6 +12,63 @@ using namespace std;
  * Struct and class definitions
 **************************************************************************************************************/
 
+struct IndexNode {
+
+    IndexNode *next;
+    unsigned int index;
+    IndexNode() {
+        next = nullptr;
+    }
+
+};
+
+class IndexList {
+
+    public:
+        IndexNode *head;
+        IndexNode *tail;
+
+        IndexList() {
+            head = nullptr;
+            tail = nullptr;
+            size = 0;
+        }
+
+        void push(unsigned int newIndex) {
+            
+            IndexNode *newNode = new IndexNode;
+            newNode->index = newIndex;
+            if (head == nullptr) {
+                head = newNode;
+            } else {
+                tail->next = newNode;
+            }
+            tail = newNode;
+
+            size += 1;
+        }
+
+        void print() {
+            IndexNode *selected = head;
+            for (unsigned int i = 0; i < size; i++) {
+                if (i != 0) {
+                    selected = selected->next;
+                }
+                cout << selected->index << " ";
+            }
+            cout << endl;
+        }
+
+        unsigned int getSize() {
+            unsigned int newSize = size;
+            return newSize;
+        }
+
+    private:
+        unsigned int size;
+
+};
+
 struct Node {
 
     Node *left, *right;
@@ -143,8 +200,8 @@ class SubtreeStack {
             head = nullptr;
         }
 
-        int getSize() {
-            int returnSize = size;
+        unsigned int getSize() {
+            unsigned int returnSize = size;
             return returnSize;
         }
 
@@ -231,6 +288,62 @@ void writeBits(string target, string bits) {
  * Primary functions
 **************************************************************************************************************/
 
+string compressionLZ77(string encode) {
+
+    map<char,IndexList> indexes;
+    for (unsigned int i = 0; i < encode.length(); i++) {
+
+        auto iter = indexes.find(encode[i]);
+        if (iter == indexes.end()) {
+            
+            IndexList newIndexList;
+            newIndexList.push(i);
+            indexes.insert(pair<char,IndexList>(encode[i], newIndexList));
+            
+        } else {
+            
+            IndexNode *selected = iter->second.head;
+            unsigned int constantSize = iter->second.getSize();
+            pair<unsigned int,unsigned int> greatestLength (0, 0);
+            for (unsigned int k = 0; k < constantSize; k++) {
+                if (k != 0) {
+                    selected = selected->next;
+                }
+
+                unsigned int distance = i-selected->index;
+                pair<unsigned int,unsigned int> distanceLength (0, distance);
+                for (unsigned int j = 0; j < encode.length()-i; j++) {
+                    if (j >= distance) {
+                        if (encode[i+j] != encode[i+(j%distance)]) {
+                            distanceLength.first = j;
+                            break;
+                        }
+                    } else if (encode[selected->index+j] == encode[i+j]) {
+                        
+                    } else {
+                        distanceLength.first = j;
+                        break;
+                    }
+                    if (j >= encode.length()-i-1) {
+                        distanceLength.first = j+1;
+                    }
+                }
+                if (distanceLength.first > greatestLength.first) {
+                    greatestLength = distanceLength;
+                }
+            }
+            string replacement = "~" + to_string(greatestLength.second) + "$" + to_string(greatestLength.first) + "~";
+            if (greatestLength.first > replacement.length()) {
+                encode = encode.substr(0,i) + replacement + encode.substr(i+greatestLength.first);
+                i += replacement.length();
+            } else {
+                indexes.at(encode[i]).push(i);
+            }
+        }
+    }
+    return encode;
+}
+
 Tree createHuffmanTree(map<string,Node*> nodes) {
     unsigned int size = nodes.size();
 
@@ -286,16 +399,20 @@ void zip(string target) {
 
         if (!isEscapeSequence(i, encode)) {
             newEncode += string(1, encode[i]);
-            auto index = frequencies.find(encode[i]);
-            if (index == frequencies.end()) {
-                frequencies.insert(pair<char,int>(encode[i], 1));
-            } else {
-                index->second += 1;
-            }
         }
 
     }
     encode = newEncode;
+    encode = compressionLZ77(encode);
+
+    for (unsigned int i = 0; i < encode.length(); i++) {
+        auto index = frequencies.find(encode[i]);
+        if (index == frequencies.end()) {
+            frequencies.insert(pair<char,int>(encode[i], 1));
+        } else {
+            index->second += 1;
+        }
+    }
 
     if (frequencies.size() == 1) {
 
@@ -388,14 +505,7 @@ void extract(string target) {
 
     allBits = allBits.substr(bitIndex);
 
-    string newFilename;
-    for (unsigned char i = 0; i < target.length(); i++) {
-        if (target.substr(i) == ".zip") {
-            newFilename = target.substr(0,i);
-        }
-    }
-    ofstream newFile (newFilename);
-
+    string priorLZ77 = "";
     unsigned int charsExtracted = 0;
     Node *selectedNode = huffman.head;
     for (unsigned int i = 0; i < allBits.length(); i++) {
@@ -407,13 +517,68 @@ void extract(string target) {
         }
 
         if (selectedNode->left == nullptr) {
-            newFile << selectedNode->characters;
+            priorLZ77 += selectedNode->characters;
             selectedNode = huffman.head;
             charsExtracted += 1;
         }
 
         if (charsExtracted == numChars) {
             break;
+        }
+    }
+
+    string newFilename;
+    for (unsigned char i = 0; i < target.length(); i++) {
+        if (target.substr(i) == ".zip") {
+            newFilename = target.substr(0,i);
+        }
+    }
+    ofstream newFile (newFilename);
+
+    for (unsigned int i = 0; i < priorLZ77.length(); i++) {
+        if (priorLZ77[i] == '~') {
+            unsigned int distance = 0;
+            unsigned int length = 0;
+            bool distanceFound = false;
+            bool lengthFound = false;
+            bool dollarFound = false;
+            int dollarIndex = 0;
+            for (unsigned int j = 1; j < priorLZ77.length()-i; j++) {
+                if (priorLZ77[i+j] == '$' && !dollarFound) {
+                    if (distanceFound) {
+                        distance = stoi(priorLZ77.substr(i+1, j-1));
+                        dollarFound = true;
+                        dollarIndex = j;
+                    } else {
+                        break;
+                    }
+                } else if (priorLZ77[i+j] == '~') {
+                    if (dollarFound && lengthFound) {
+                        length = stoi(priorLZ77.substr(i+dollarIndex+1, j-dollarIndex-1));
+                    } else {
+                        break;
+                    }
+                } else if (priorLZ77[i+j] >= 48 && priorLZ77[i+j] <= 57) {
+                    if (!dollarFound) {
+                        distanceFound = true;
+                    } else {
+                        lengthFound = true;
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (distance == 0 || length == 0) {
+                newFile << priorLZ77[i];
+            } else {
+                for (unsigned int j = 0; j < length; j++) {
+                    newFile << priorLZ77[i-distance+(j%distance)];
+                }
+                string distanceLengthString = "~" + to_string(distance) + "$" + to_string(length) + "~";
+                i += distanceLengthString.length()-1;
+            }
+        } else {
+            newFile << priorLZ77[i];
         }
     }
 
