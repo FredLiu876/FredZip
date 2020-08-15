@@ -12,6 +12,7 @@ using namespace std;
  * Struct and class definitions
 **************************************************************************************************************/
 
+// Node for IndexList linked list
 struct IndexNode {
 
     IndexNode *next;
@@ -22,6 +23,7 @@ struct IndexNode {
 
 };
 
+// Linked list containing all indexes of a character in a string for LZ77 compression
 class IndexList {
 
     public:
@@ -34,6 +36,7 @@ class IndexList {
             size = 0;
         }
 
+        // append new index to end
         void push(unsigned int newIndex) {
             
             IndexNode *newNode = new IndexNode;
@@ -48,6 +51,7 @@ class IndexList {
             size += 1;
         }
 
+        // for testing, otherwise unused method
         void print() {
             IndexNode *selected = head;
             for (unsigned int i = 0; i < size; i++) {
@@ -69,6 +73,7 @@ class IndexList {
 
 };
 
+// Node for huffman tree
 struct Node {
 
     Node *left, *right;
@@ -104,16 +109,19 @@ struct Node {
 
     }
 
+    // for testing, otherwise unused method
     void print() {
         cout << characters << "(" << 0+characters[0] << ")" << " -> " << freq << '\n';
     }
 
+    // for testing, otherwise unused method
     void print(string code) {
         cout << characters << " -> " << code << '\n';
     }
     
 };
 
+// Huffman tree
 class Tree {
 
     public:
@@ -127,6 +135,7 @@ class Tree {
             head = newHead;
         }
 
+        // for testing, otherwise unused method
         void print() {
             print(head, "");
         }
@@ -143,6 +152,7 @@ class Tree {
     private:
         map<char,string> codes;
 
+        // for testing, otherwise unused method
         void print(Node *startPoint, string code) {
 
             if (startPoint->left != nullptr) {
@@ -180,7 +190,9 @@ class Tree {
 
 };
 
+// Node for stack containing subtrees
 struct Subtree {
+
     Node *data;
     Subtree *next;
 
@@ -188,8 +200,10 @@ struct Subtree {
         data = nullptr;
         next = nullptr;
     }
+
 };
 
+// Stack to generate huffman tree from subtrees based on its post order traversal encryption
 class SubtreeStack {
 
     public:
@@ -217,6 +231,8 @@ class SubtreeStack {
 
         }
 
+        /* Removes two of the first subtrees and combines them into larger subtree
+        then pushes larger subtree back into stack */
         void pop() {
 
             Node *node1 = head->next->data;
@@ -261,6 +277,11 @@ bool isEscapeSequence(unsigned int index, string check) {
     return check[index] == '\r' && index+1 < check.length() && check[index+1] == '\n';
 }
 
+bool isNumber(char check) {
+    return check >= 48 && check <= 57;
+}
+
+// return file text as one string
 string readInput(string target) {
 
     ifstream input( target, ios_base::binary );
@@ -270,6 +291,7 @@ string readInput(string target) {
 
 }
 
+// write stream of bits into textfile
 void writeBits(string target, string bits) {
 
     ofstream output (target);
@@ -294,6 +316,8 @@ string compressionLZ77(string encode) {
     for (unsigned int i = 0; i < encode.length(); i++) {
 
         auto iter = indexes.find(encode[i]);
+        
+        // create new linked list containing indexes if this is first time character has appeared
         if (iter == indexes.end()) {
             
             IndexList newIndexList;
@@ -302,6 +326,7 @@ string compressionLZ77(string encode) {
             
         } else {
             
+            //check for matches for all previous indexes of character
             IndexNode *selected = iter->second.head;
             unsigned int constantSize = iter->second.getSize();
             pair<unsigned int,unsigned int> greatestLength (0, 0);
@@ -310,6 +335,7 @@ string compressionLZ77(string encode) {
                     selected = selected->next;
                 }
 
+                // check match
                 unsigned int distance = i-selected->index;
                 pair<unsigned int,unsigned int> distanceLength (0, distance);
                 for (unsigned int j = 0; j < encode.length()-i; j++) {
@@ -328,14 +354,20 @@ string compressionLZ77(string encode) {
                         distanceLength.first = j+1;
                     }
                 }
+
+                // use longest match
                 if (distanceLength.first > greatestLength.first) {
                     greatestLength = distanceLength;
                 }
             }
+
+            // replace match with distance length pair if longest match is long enough
             string replacement = "~" + to_string(greatestLength.second) + "$" + to_string(greatestLength.first) + "~";
             if (greatestLength.first > replacement.length()) {
                 encode = encode.substr(0,i) + replacement + encode.substr(i+greatestLength.first);
                 i += replacement.length();
+
+            // push new index for character if no matches are long enough
             } else {
                 indexes.at(encode[i]).push(i);
             }
@@ -344,6 +376,77 @@ string compressionLZ77(string encode) {
     return encode;
 }
 
+void extractLZ77(string priorLZ77, string target) {
+
+    string newFilename;
+    for (unsigned char i = 0; i < target.length(); i++) {
+        if (target.substr(i) == ".zip") {
+            newFilename = target.substr(0,i);
+        }
+    }
+    ofstream newFile (newFilename);
+
+    for (unsigned int i = 0; i < priorLZ77.length(); i++) {
+        if (priorLZ77[i] == '~') {
+
+            //check if it is distance length pair or a normal character
+            unsigned int distance = 0;
+            unsigned int length = 0;
+            bool distanceFound = false;
+            bool lengthFound = false;
+            bool dollarFound = false;
+            int dollarIndex = 0;
+
+            for (unsigned int j = 1; j < priorLZ77.length()-i; j++) {
+
+                if (priorLZ77[i+j] == '$' && !dollarFound) {
+                    if (distanceFound) {
+                        distance = stoi(priorLZ77.substr(i+1, j-1));
+                        dollarFound = true;
+                        dollarIndex = j;
+                    } else {
+                        break;
+                    }
+                } else if (priorLZ77[i+j] == '~') {
+                    if (dollarFound && lengthFound) {
+                        length = stoi(priorLZ77.substr(i+dollarIndex+1, j-dollarIndex-1));
+                    } else {
+                        break;
+                    }
+                } else if (isNumber(priorLZ77[i+j])) {
+                    if (!dollarFound) {
+                        distanceFound = true;
+                    } else {
+                        lengthFound = true;
+                    }
+                } else {
+                    break;
+                }
+
+            }
+
+            // regular character
+            if (distance == 0 || length == 0) {
+                newFile << priorLZ77[i];
+
+            // valid distance length pair, write to new file
+            } else {
+                for (unsigned int j = 0; j < length; j++) {
+                    newFile << priorLZ77[i-distance+(j%distance)];
+                }
+                string distanceLengthString = "~" + to_string(distance) + "$" + to_string(length) + "~";
+                i += distanceLengthString.length()-1;
+            }
+
+        } else {
+            newFile << priorLZ77[i];
+        }
+    }
+
+    newFile.close();
+}
+
+// create huffman tree based on character frequencies
 Tree createHuffmanTree(map<string,Node*> nodes) {
     unsigned int size = nodes.size();
 
@@ -393,6 +496,7 @@ void zip(string target) {
     
     string encode = readInput(target);
 
+    // remove \r from \r\n escape sequence
     string newEncode = "";
     map<char,int> frequencies;
     for (unsigned int i = 0; i < encode.length(); i++) {
@@ -526,63 +630,7 @@ void extract(string target) {
             break;
         }
     }
-
-    string newFilename;
-    for (unsigned char i = 0; i < target.length(); i++) {
-        if (target.substr(i) == ".zip") {
-            newFilename = target.substr(0,i);
-        }
-    }
-    ofstream newFile (newFilename);
-
-    for (unsigned int i = 0; i < priorLZ77.length(); i++) {
-        if (priorLZ77[i] == '~') {
-            unsigned int distance = 0;
-            unsigned int length = 0;
-            bool distanceFound = false;
-            bool lengthFound = false;
-            bool dollarFound = false;
-            int dollarIndex = 0;
-            for (unsigned int j = 1; j < priorLZ77.length()-i; j++) {
-                if (priorLZ77[i+j] == '$' && !dollarFound) {
-                    if (distanceFound) {
-                        distance = stoi(priorLZ77.substr(i+1, j-1));
-                        dollarFound = true;
-                        dollarIndex = j;
-                    } else {
-                        break;
-                    }
-                } else if (priorLZ77[i+j] == '~') {
-                    if (dollarFound && lengthFound) {
-                        length = stoi(priorLZ77.substr(i+dollarIndex+1, j-dollarIndex-1));
-                    } else {
-                        break;
-                    }
-                } else if (priorLZ77[i+j] >= 48 && priorLZ77[i+j] <= 57) {
-                    if (!dollarFound) {
-                        distanceFound = true;
-                    } else {
-                        lengthFound = true;
-                    }
-                } else {
-                    break;
-                }
-            }
-            if (distance == 0 || length == 0) {
-                newFile << priorLZ77[i];
-            } else {
-                for (unsigned int j = 0; j < length; j++) {
-                    newFile << priorLZ77[i-distance+(j%distance)];
-                }
-                string distanceLengthString = "~" + to_string(distance) + "$" + to_string(length) + "~";
-                i += distanceLengthString.length()-1;
-            }
-        } else {
-            newFile << priorLZ77[i];
-        }
-    }
-
-    newFile.close();
+    extractLZ77(priorLZ77, target);
 }
 
 /**************************************************************************************************************
