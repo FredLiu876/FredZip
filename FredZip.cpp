@@ -492,7 +492,7 @@ Tree createHuffmanTree(map<string,Node*> nodes) {
     return Tree();
 }
 
-void zip(string target) {
+void zip(string target, string writeFile) {
     
     string encode = readInput(target);
 
@@ -522,7 +522,13 @@ void zip(string target) {
 
         string bits = bitset<8>(frequencies.begin()->first).to_string();
         bits += bitset<32>(frequencies.begin()->second).to_string();
-        writeBits(target + ".zip", bits);
+
+        if (writeFile != "") {
+            writeBits(writeFile + ".zip", bits);
+        } else {
+            writeBits(target + ".zip", bits);
+        }
+
         return;
         
     }
@@ -553,10 +559,14 @@ void zip(string target) {
         }
     }
 
-    writeBits(target + ".zip", bits);
+    if (writeFile != "") {
+        writeBits(writeFile + ".zip", bits);
+    } else {
+        writeBits(target + ".zip", bits);
+    }
 }
 
-void extract(string target) {
+void extract(string target, string writeFile) {
     
     string decode = readInput(target);
 
@@ -630,7 +640,12 @@ void extract(string target) {
             break;
         }
     }
-    extractLZ77(priorLZ77, target);
+
+    if (writeFile != "") {
+        extractLZ77(priorLZ77, writeFile + ".zip");
+    } else {
+        extractLZ77(priorLZ77, target);
+    }
 }
 
 /**************************************************************************************************************
@@ -644,12 +659,32 @@ void extract(string target) {
 int main(int argc, char *argv[]) {
 
     string option = argv[1];
-    string file = argv[2];
+    string writeFile = "";
+    string targetFile = "";
+
+    if (argc >= 3) {
+        targetFile = argv[2];
+    }
+
+    if (argc >= 4) {
+        writeFile = argv[3];
+    }
 
     if (option == "-z") {
-        zip(file);
+        zip(targetFile, writeFile);
     } else if (option == "-e") {
-        extract(file);
+        if (targetFile.substr(targetFile.length()-4) == ".zip") {
+            extract(targetFile, writeFile);
+        } else {
+            cout << "Targeted file is not zip file" << endl;
+            return 1;
+        }
+    } else if (option == "-h" || option == "help") {
+        cout << "-z filename (newFilename)? --> Zip a file with optional parameter of custom zip file name" << endl;
+        cout << "-e zipFilename (newFilename)? --> Extract a zip file with optional parameter of custom new file name" << endl;
+    } else {
+        cout << "Unknown parameters, please use FredZip help or FredZip -h to see commands." << endl;
+        return 1;
     }
 
 }
