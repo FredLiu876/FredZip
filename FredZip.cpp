@@ -20,7 +20,9 @@ struct IndexNode {
     IndexNode() {
         next = nullptr;
     }
-
+    ~IndexNode() {
+        delete next;
+    }
 };
 
 // Linked list containing all indexes of a character in a string for LZ77 compression
@@ -34,6 +36,10 @@ class IndexList {
             head = nullptr;
             tail = nullptr;
             size = 0;
+        }
+
+        ~IndexList() {
+            delete head;
         }
 
         // append new index to end
@@ -85,6 +91,11 @@ struct Node {
         right = nullptr;
     }
 
+    ~Node() {
+        delete left;
+        delete right;
+    }
+
     void set(string newCharacters, unsigned int newFreq, Node *newLeft, Node *newRight) {
 
         characters = newCharacters;
@@ -129,6 +140,9 @@ class Tree {
 
         Tree() {
             head = nullptr;
+        }
+        ~Tree() {
+            delete head;
         }
 
         Tree(Node* newHead) {
@@ -200,7 +214,10 @@ struct Subtree {
         data = nullptr;
         next = nullptr;
     }
-
+    ~Subtree() {
+        delete data;
+        delete next;
+    }
 };
 
 // Stack to generate huffman tree from subtrees based on its post order traversal encryption
@@ -212,6 +229,9 @@ class SubtreeStack {
         SubtreeStack() {
             size = 0;
             head = nullptr;
+        }
+        ~SubtreeStack() {
+            delete head;
         }
 
         unsigned int getSize() {
