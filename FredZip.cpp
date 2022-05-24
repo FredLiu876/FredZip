@@ -123,7 +123,7 @@ void extractLZ77(string priorLZ77, string target) {
 
     string newFilename;
     for (unsigned char i = 0; i < target.length(); i++) {
-        if (target.substr(i) == ".zip") {
+        if (target.substr(i) == ".fredzip") {
             newFilename = target.substr(0,i);
         }
     }
@@ -265,9 +265,9 @@ void zip(string target, string writeFile) {
         bits += bitset<32>(frequencies.begin()->second).to_string();
 
         if (writeFile != "") {
-            writeBits(writeFile + ".zip", bits);
+            writeBits(writeFile + ".fredzip", bits);
         } else {
-            writeBits(target + ".zip", bits);
+            writeBits(target + ".fredzip", bits);
         }
 
         return;
@@ -300,9 +300,9 @@ void zip(string target, string writeFile) {
         }
     }
     if (writeFile != "") {
-        writeBits(writeFile + ".zip", bits);
+        writeBits(writeFile + ".fredzip", bits);
     } else {
-        writeBits(target + ".zip", bits);
+        writeBits(target + ".fredzip", bits);
     }
 }
 
@@ -320,7 +320,7 @@ void extract(string target, string writeFile) {
     if (allBits.length() == 40) {
         string newFilename;
         for (unsigned char i = 0; i < target.length(); i++) {
-            if (target.substr(i) == ".zip") {
+            if (target.substr(i) == ".fredzip") {
                 newFilename = target.substr(0,i);
             }
         }
@@ -382,7 +382,7 @@ void extract(string target, string writeFile) {
     }
 
     if (writeFile != "") {
-        extractLZ77(priorLZ77, writeFile + ".zip");
+        extractLZ77(priorLZ77, writeFile + ".fredzip");
     } else {
         extractLZ77(priorLZ77, target);
     }
@@ -413,11 +413,16 @@ int main(int argc, char *argv[]) {
     if (option == "-z") {
         zip(targetFile, writeFile);
     } else if (option == "-e") {
-        if (targetFile.substr(targetFile.length()-4) == ".zip") {
-            extract(targetFile, writeFile);
-        } else {
-            cout << "Targeted file is not zip file" << endl;
+        string s{targetFile};
+        int str_len = (int) s.length();
+        if (str_len-8 < 0) {
+            cout << "Targeted file is not a fredzip file" << endl;
             return 1;
+        } else if (targetFile.substr(targetFile.length()-8) != ".fredzip") {
+            cout << "Targeted file is not a fredzip file" << endl;
+            return 1;
+        } else {
+            extract(targetFile, writeFile);
         }
     } else if (option == "-h" || option == "help") {
         cout << "-z filename (newFilename)? --> Zip a file with optional parameter of custom zip file name" << endl;
