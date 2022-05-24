@@ -5,289 +5,12 @@
 #include <sstream>
 #include <direct.h>
 #include <bitset>
+#include "IndexList.h"
+#include "node.h"
+#include "HuffmanTree.h"
+#include "SubtreeStack.h"
 
 using namespace std;
-
-/**************************************************************************************************************
- * Struct and class definitions
-**************************************************************************************************************/
-
-// Node for IndexList linked list
-struct IndexNode {
-
-    IndexNode *next;
-    unsigned int index;
-    IndexNode() {
-        next = nullptr;
-    }
-    ~IndexNode() {
-        delete next;
-    }
-};
-
-// Linked list containing all indexes of a character in a string for LZ77 compression
-class IndexList {
-
-    public:
-        IndexNode *head;
-        IndexNode *tail;
-
-        IndexList() {
-            head = nullptr;
-            tail = nullptr;
-            size = 0;
-        }
-
-        ~IndexList() {
-            delete head;
-        }
-
-        // append new index to end
-        void push(unsigned int newIndex) {
-            
-            IndexNode *newNode = new IndexNode;
-            newNode->index = newIndex;
-            if (head == nullptr) {
-                head = newNode;
-            } else {
-                tail->next = newNode;
-            }
-            tail = newNode;
-
-            size += 1;
-        }
-
-        // for testing, otherwise unused method
-        void print() {
-            IndexNode *selected = head;
-            for (unsigned int i = 0; i < size; i++) {
-                if (i != 0) {
-                    selected = selected->next;
-                }
-                cout << selected->index << " ";
-            }
-            cout << endl;
-        }
-
-        unsigned int getSize() {
-            unsigned int newSize = size;
-            return newSize;
-        }
-
-    private:
-        unsigned int size;
-
-};
-
-// Node for huffman tree
-struct Node {
-
-    Node *left, *right;
-    string characters;
-    unsigned int freq;
-
-    Node() {
-        left = nullptr;
-        right = nullptr;
-    }
-
-    ~Node() {
-        delete left;
-        delete right;
-    }
-
-    void set(string newCharacters, unsigned int newFreq, Node *newLeft, Node *newRight) {
-
-        characters = newCharacters;
-        freq = newFreq;
-        left = newLeft;
-        right = newRight;
-
-    }
-
-    void set(string newCharacters, Node *newLeft, Node *newRight) {
-
-        characters = newCharacters;
-        left = newLeft;
-        right = newRight;
-
-    }
-
-    void set(string newCharacters, unsigned int newFreq) {
-
-        characters = newCharacters;
-        freq = newFreq;
-
-    }
-
-    // for testing, otherwise unused method
-    void print() {
-        cout << characters << "(" << 0+characters[0] << ")" << " -> " << freq << '\n';
-    }
-
-    // for testing, otherwise unused method
-    void print(string code) {
-        cout << characters << " -> " << code << '\n';
-    }
-    
-};
-
-// Huffman tree
-class Tree {
-
-    public:
-        Node *head;
-
-        Tree() {
-            head = nullptr;
-        }
-        ~Tree() {
-            delete head;
-        }
-
-        Tree(Node* newHead) {
-            head = newHead;
-        }
-
-        // for testing, otherwise unused method
-        void print() {
-            print(head, "");
-        }
-
-        string encode() {
-            return encode(head);
-        }
-
-        map<char,string> generateCodes() {
-            findCode(head, "");
-            return codes;
-        }
-
-    private:
-        map<char,string> codes;
-
-        // for testing, otherwise unused method
-        void print(Node *startPoint, string code) {
-
-            if (startPoint->left != nullptr) {
-                print(startPoint->left, code + "0");
-                print(startPoint->right, code + "1");
-            } else {
-                startPoint->print(code);
-            }
-
-        }
-
-        string encode(Node *startPoint) {
-
-            string returnString;
-            if (startPoint->left != nullptr) {
-                returnString = encode(startPoint->left);
-                returnString += encode(startPoint->right) + "0";
-            } else {
-                returnString = "1" + bitset<8>(startPoint->characters[0]).to_string();
-            }
-            return returnString;
-
-        }
-
-        void findCode(Node *startPoint, string code) {
-
-            if (startPoint->left != nullptr) {
-                findCode(startPoint->left, code + "0");
-                findCode(startPoint->right, code + "1");
-            } else {
-                codes.insert(pair<char,string>(startPoint->characters[0],code));
-            }
-
-        }
-
-};
-
-// Node for stack containing subtrees
-struct Subtree {
-
-    Node *data;
-    Subtree *next;
-
-    Subtree() {
-        data = nullptr;
-        next = nullptr;
-    }
-    ~Subtree() {
-        delete data;
-        delete next;
-    }
-};
-
-// Stack to generate huffman tree from subtrees based on its post order traversal encryption
-class SubtreeStack {
-
-    public:
-        Subtree *head;
-
-        SubtreeStack() {
-            size = 0;
-            head = nullptr;
-        }
-        ~SubtreeStack() {
-            delete head;
-        }
-
-        unsigned int getSize() {
-            unsigned int returnSize = size;
-            return returnSize;
-        }
-
-        void push(Node *node) {
-
-            Subtree *newSubtree = new Subtree;
-            newSubtree->data = node;
-            if (head != nullptr) {
-                newSubtree->next = head;
-            }
-            head = newSubtree;
-            size += 1;
-
-        }
-
-        /* Removes two of the first subtrees and combines them into larger subtree
-        then pushes larger subtree back into stack */
-        void pop() {
-
-            Node *node1 = head->next->data;
-            Node *node2 = head->data;
-            Node *combined = new Node;
-            combined->set(node1->characters+node2->characters, node1, node2);
-            size -= 2;
-            if (size == 0) {
-                head = nullptr;
-            } else {
-                head = head->next->next;
-            }
-            push(combined);
-
-        }
-
-        void print() {
-            print(head);
-        }
-
-    private:
-        unsigned int size;
-
-        void print(Subtree *startPoint) {
-            startPoint->data->print();
-            if (startPoint->next != nullptr) {
-                print(startPoint->next);
-            }
-        }
-
-};
-
-/**************************************************************************************************************
- * End of struct and class definitions
-**************************************************************************************************************/
 
 /**************************************************************************************************************
  * Helper functions
@@ -332,29 +55,27 @@ void writeBits(string target, string bits) {
 
 string compressionLZ77(string encode) {
 
-    map<char,IndexList> indexes;
+    map<char,IndexList*> indexes;
     for (unsigned int i = 0; i < encode.length(); i++) {
 
         auto iter = indexes.find(encode[i]);
-        
+
         // create new linked list containing indexes if this is first time character has appeared
         if (iter == indexes.end()) {
             
-            IndexList newIndexList;
-            newIndexList.push(i);
-            indexes.insert(pair<char,IndexList>(encode[i], newIndexList));
-            
+            IndexList *newIndexList = new IndexList;
+            newIndexList->push(i);
+            indexes.insert(pair<char,IndexList*>(encode[i], newIndexList));
         } else {
             
             //check for matches for all previous indexes of character
-            IndexNode *selected = iter->second.head;
-            unsigned int constantSize = iter->second.getSize();
+            IndexList::IndexNode *selected = iter->second->head;
+            unsigned int constantSize = iter->second->getSize();
             pair<unsigned int,unsigned int> greatestLength (0, 0);
             for (unsigned int k = 0; k < constantSize; k++) {
                 if (k != 0) {
                     selected = selected->next;
                 }
-
                 // check match
                 unsigned int distance = i-selected->index;
                 pair<unsigned int,unsigned int> distanceLength (0, distance);
@@ -380,7 +101,6 @@ string compressionLZ77(string encode) {
                     greatestLength = distanceLength;
                 }
             }
-
             // replace match with distance length pair if longest match is long enough
             string replacement = "~" + to_string(greatestLength.second) + "$" + to_string(greatestLength.first) + "~";
             if (greatestLength.first > replacement.length()) {
@@ -389,9 +109,12 @@ string compressionLZ77(string encode) {
 
             // push new index for character if no matches are long enough
             } else {
-                indexes.at(encode[i]).push(i);
+                indexes.at(encode[i])->push(i);
             }
         }
+    }
+    for (auto it = indexes.begin(); it != indexes.end(); it++) {
+        delete it->second;
     }
     return encode;
 }
@@ -515,7 +238,6 @@ Tree createHuffmanTree(map<string,Node*> nodes) {
 void zip(string target, string writeFile) {
     
     string encode = readInput(target);
-
     // remove \r from \r\n escape sequence
     string newEncode = "";
     map<char,int> frequencies;
@@ -528,7 +250,6 @@ void zip(string target, string writeFile) {
     }
     encode = newEncode;
     encode = compressionLZ77(encode);
-
     for (unsigned int i = 0; i < encode.length(); i++) {
         auto index = frequencies.find(encode[i]);
         if (index == frequencies.end()) {
@@ -578,7 +299,6 @@ void zip(string target, string writeFile) {
             bits += "0";
         }
     }
-
     if (writeFile != "") {
         writeBits(writeFile + ".zip", bits);
     } else {
