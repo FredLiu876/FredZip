@@ -1,5 +1,5 @@
 #include "SubtreeStack.h"
-#include "node.h"
+#include "Node.h"
 
 using namespace std;
 
@@ -9,7 +9,6 @@ SubtreeStack::Subtree::Subtree() {
 }
 
 SubtreeStack::Subtree::~Subtree() {
-    delete data;
     delete next;
 }
 
@@ -46,7 +45,7 @@ void SubtreeStack::pop() {
     Node *node1 = head->next->data;
     Node *node2 = head->data;
     Node *combined = new Node;
-    combined->set(node1->characters+node2->characters, node1, node2);
+    combined->set(node1->characters+node2->characters, 0, node1, node2);
     size -= 2;
     if (size == 0) {
         head = nullptr;
@@ -58,7 +57,10 @@ void SubtreeStack::pop() {
 }
 
 void SubtreeStack::print() {
-    print(head);
+    if (head != nullptr) {
+        print(head);
+    }
+    
 }
 
 void SubtreeStack::print(Subtree *startPoint) {

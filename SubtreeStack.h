@@ -1,7 +1,7 @@
 #ifndef SUBTREESTACK_H
 #define SUBTREESTACK_H
 
-#include "node.h"
+#include "Node.h"
 using namespace std;
 
 // Stack to generate huffman tree from subtrees based on its post order traversal encryption
