@@ -1,8 +1,8 @@
 #ifndef HUFFMANTREE_H
 #define HUFFMANTREE_H
-#include "node.h"
-#include <string>
 #include <map>
+#include <string>
+#include "Node.h"
 
 using namespace std;
 
@@ -14,19 +14,25 @@ class Tree {
 
         Tree();
         Tree(Node* newHead);
+        Tree(string encode);
         ~Tree();
+
+        string getEncoding(string encode);
+        string encodeTreeIntoBits();
+        map<char,string> generateLetterCodes();
 
         // for testing, otherwise unused method
         void print();
-        string encode();
-        map<char,string> generateCodes();
 
     private:
         map<char,string> codes;
         // for testing, otherwise unused method
         void print(Node *startPoint, string code);
-        string encode(Node *startPoint);
-        void findCode(Node *startPoint, string code);
+        string encodeTreeIntoBits(Node *startPoint);
+        void findLetterCode(Node *startPoint, string code);
 };
+
+string compressionHuffman(string encode);
+string decompressionHuffman(string decode);
 
 #endif

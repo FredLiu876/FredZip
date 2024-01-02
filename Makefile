@@ -1,6 +1,6 @@
 CXX=g++
 CXXFLAGS=-g -MMD
-OBJECTS=FredZip.o HuffmanTree.o IndexList.o node.o SubtreeStack.o
+OBJECTS=FredZip.o ZipIO.o LZ77.o HuffmanTree.o Node.o SubtreeStack.o
 DEPENDS=${OBJECTS:.o=.d}
 EXEC=FredZip
 
