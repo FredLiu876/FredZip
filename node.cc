@@ -1,6 +1,6 @@
-#include "node.h"
-#include <string>
 #include <iostream>
+#include <string>
+#include "Node.h"
 
 using namespace std;
 
@@ -40,7 +40,7 @@ void Node::set(string newCharacters, unsigned int newFreq) {
 
 // for testing, otherwise unused method
 void Node::print() {
-    cout << characters << "(" << 0+characters[0] << ")" << " -> " << freq << '\n';
+    cout << characters << " -> " << freq << endl;
 }
 
 // for testing, otherwise unused method

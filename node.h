@@ -14,9 +14,9 @@ struct Node {
     Node();
     ~Node();
 
-    void set(string newCharacters, unsigned int newFreq, Node *newLeft, Node *newRight);
-    void set(string newCharacters, Node *newLeft, Node *newRight);
-    void set(string newCharacters, unsigned int newFreq);
+    void set(string newCharacter, unsigned int newFreq, Node *newLeft, Node *newRight);
+    void set(string newCharacter, Node *newLeft, Node *newRight);
+    void set(string newCharacter, unsigned int newFreq);
 
     // for testing, otherwise unused method
     void print();
